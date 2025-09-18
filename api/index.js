@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const productsRouter = require('./routes/products');
+const authRouter = require('./routes/auth');
 const User = require('./models/User');
 const cors = require('cors');
 
@@ -22,6 +23,7 @@ app.get('/', (_req, res) => {
 });
 
 // Routes
+app.use('/auth', authRouter);
 app.use('/products', productsRouter);
 
 // 404
