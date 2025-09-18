@@ -1,6 +1,21 @@
 const express = require('express');
 const Product = require('../models/Product');
 
+const { z } = require('zod');
+
+const productSchema = z.object({
+  title: z.string().min(1),
+  price: z.number().int().nonnegative(),
+  stock: z.number().int().nonnegative().default(1),
+  category: z
+    .enum(['vegetables', 'fruits', 'dairy', 'meat', 'other'])
+    .default('other'),
+  location: z.object({
+    type: z.literal('Point'),
+    coordinates: z.tuple([z.number(), z.number()]), // [lng, lat]
+  }),
+});
+
 const router = express.Router();
 
 // GET /products  – visi
@@ -17,22 +32,15 @@ router.get('/', async (req, res) => {
 // POST /products – sukurti
 router.post('/', async (req, res) => {
   try {
-    const { title, price, stock, category, location } = req.body;
-
-    if (!title || price == null || !location?.type || !location?.coordinates) {
-      return res.status(400).json({ error: 'Blogai uzpildyti laukeliai' });
-    }
-
-    const doc = await Product.create({
-      title,
-      price,
-      stock,
-      category,
-      location, // { type: 'Point', coordinates: [lng, lat] }
-    });
-
-    res.status(201).json(doc);
+    const parsed = productSchema.parse(req.body);
+    const doc = await Product.create(parsed);
+    res.status(201).json(item);
   } catch (e) {
+    if (e.name === 'ZodError') {
+      return res
+        .status(400)
+        .json({ error: 'Nepraejo patikros duomenys', details: e.errors });
+    }
     console.error(e);
     res.status(400).json({ error: 'Neteisingi duomenys' });
   }
